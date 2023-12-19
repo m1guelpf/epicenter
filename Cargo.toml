@@ -1,0 +1,22 @@
+[package]
+license = "MIT"
+edition = "2021"
+version = "0.1.0"
+name = "epicenter"
+readme = "README.md"
+authors = ["Miguel Piedrafita <rust@miguel.build>"]
+repository = "https://github.com/m1guelpf/epicenter"
+description = "Simple synchronous and asynchronous event dispatcher for Rust"
+keywords = ["event dispatcher", "event listener", "event system", "asyncronous", "synchronous"]
+categories = ["event-dispatcher", "event-listener", "event-system", "asyncronous", "synchronous"]
+
+[dependencies]
+thiserror = "1.0.51"
+tokio = { version = "1.35.0", features = ["sync"], optional = true }
+
+[features]
+default = ["async"]
+async = ["dep:tokio"]
+
+[dev-dependencies]
+tokio = { version = "1.35.0", features = ["macros", "rt", "rt-multi-thread"] }

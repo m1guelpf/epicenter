@@ -16,12 +16,12 @@ pub trait EventHandler<Ev: Event + 'static>: Send + Sync {
 
 impl<Ev: Event + Send + Sync + 'static, F, Fut> EventHandler<Ev> for F
 where
-	F: Fn(&mut Ev) -> Fut + Send + Sync,
+	F: Fn(Ev) -> Fut + Send + Sync,
 	Fut: Future<Output = ()> + Send + Sync + 'static,
 {
-	fn handle(&self, mut event: Ev) -> BoxFuture<'_, ()> {
+	fn handle(&self, event: Ev) -> BoxFuture<'_, ()> {
 		Box::pin(async move {
-			(self)(&mut event).await;
+			(self)(event).await;
 		})
 	}
 }
@@ -130,7 +130,7 @@ mod tests {
 		let mut dispatcher = Dispatcher::new();
 
 		dispatcher
-			.listen(|event: &mut OrderShipped| async move { assert_eq!(event.order_id, 123) })
+			.listen(|event: OrderShipped| async move { assert_eq!(event.order_id, 123) })
 			.await;
 
 		dispatcher

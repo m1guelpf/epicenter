@@ -17,11 +17,11 @@ impl Event for ExampleEvent {}
 
 let mut dispatcher = AsyncDispatcher::new();
 
-dispatcher.listen(|event: &mut ExampleEvent| async move {
+dispatcher.listen(|event: &ExampleEvent| async move {
     // ...
 }).await;
 
-dispatcher.dispatch(ExampleEvent {}).await?;
+dispatcher.dispatch(&ExampleEvent {}).await?;
 ```
 
 Refer to the [documentation on docs.rs](https://docs.rs/epicenter) for detailed usage instructions.

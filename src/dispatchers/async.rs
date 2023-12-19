@@ -16,12 +16,12 @@ pub trait EventHandler<Ev: Event + 'static>: Send + Sync {
 
 impl<Ev: Event + Send + Sync + 'static, F, Fut> EventHandler<Ev> for F
 where
-	F: Fn(&mut Ev) -> Fut + Send + Sync,
+	F: Fn(Ev) -> Fut + Send + Sync,
 	Fut: Future<Output = ()> + Send + Sync + 'static,
 {
-	fn handle(&self, mut event: Ev) -> BoxFuture<'_, ()> {
+	fn handle(&self, event: Ev) -> BoxFuture<'_, ()> {
 		Box::pin(async move {
-			(self)(&mut event).await;
+			(self)(event).await;
 		})
 	}
 }
@@ -29,7 +29,7 @@ where
 #[allow(clippy::type_complexity)]
 struct AsyncListener {
 	event: TypeId,
-	handler: Box<dyn (FnMut(&mut dyn Any) -> BoxFuture<'_, ()>) + Send + Sync>,
+	handler: Box<dyn (Fn(&dyn Any) -> BoxFuture<'_, ()>) + Send + Sync>,
 }
 
 pub struct Dispatcher {
@@ -62,9 +62,9 @@ impl Dispatcher {
 
 		listeners.push(AsyncListener {
 			event: TypeId::of::<Ev>(),
-			handler: Box::new(move |ev: &mut dyn Any| {
+			handler: Box::new(move |ev: &dyn Any| {
 				let ev = ev
-					.downcast_mut::<Ev>()
+					.downcast_ref::<Ev>()
 					.expect("Event type mismatch in dispatcher")
 					.clone();
 				let on_event = on_event.clone();
@@ -87,16 +87,19 @@ impl Dispatcher {
 	///
 	/// Returns an error if the event type is not registered with the dispatcher.
 	#[allow(clippy::significant_drop_in_scrutinee)]
-	pub async fn dispatch<Ev: Event + Send + 'static>(&self, event: &mut Ev) -> Result<(), Error> {
-		for listener in self
-			.listeners
-			.write()
-			.await
-			.iter_mut()
+	pub async fn dispatch<Ev: Event + Send + Sync + 'static>(
+		&self,
+		event: &Ev,
+	) -> Result<(), Error> {
+		let listeners = self.listeners.read().await;
+
+		let futures = listeners
+			.iter()
 			.filter(|listener| listener.event == TypeId::of::<Ev>())
-		{
-			(listener.handler)(event).await;
-		}
+			.map(|listener| (listener.handler)(event));
+
+		futures::future::join_all(futures).await;
+		drop(listeners);
 
 		Ok(())
 	}
@@ -113,4 +116,29 @@ pub enum Error {
 	/// The event type is not registered with the dispatcher.
 	#[error("Event type is not registered with the dispatcher")]
 	UnregisteredEvent,
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[derive(Debug, Clone, PartialEq)]
+	struct OrderShipped {
+		order_id: u64,
+	}
+	impl Event for OrderShipped {}
+
+	#[tokio::test]
+	async fn test_async_dispatcher() {
+		let mut dispatcher = Dispatcher::new();
+
+		dispatcher
+			.listen(|event: OrderShipped| async move { assert_eq!(event.order_id, 123) })
+			.await;
+
+		dispatcher
+			.dispatch(&OrderShipped { order_id: 123 })
+			.await
+			.unwrap();
+	}
 }

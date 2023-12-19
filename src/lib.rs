@@ -17,13 +17,11 @@
 //! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let mut dispatcher = AsyncDispatcher::new();
 //!
-//! dispatcher.listen(|event: &mut OrderShipped| async move {
+//! dispatcher.listen(|event: OrderShipped| async move {
 //!     assert_eq!(event.order_id, 123);
 //! }).await;
 //!
-//! dispatcher.dispatch(&mut OrderShipped {
-//!     order_id: 123
-//! }).await?;
+//! dispatcher.dispatch(&OrderShipped { order_id: 123 }).await?;
 //! # Ok(())
 //! # }
 //! ```

@@ -114,3 +114,30 @@ pub enum Error {
 	#[error("Event type is not registered with the dispatcher")]
 	UnregisteredEvent,
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[derive(Debug, Clone, PartialEq)]
+	struct OrderShipped {
+		order_id: u64,
+	}
+	impl Event for OrderShipped {}
+
+	#[tokio::test]
+	async fn test_async_dispatcher() {
+		let mut dispatcher = Dispatcher::new();
+
+		dispatcher
+			.listen(|event: &mut OrderShipped| async move {
+				dbg!(event);
+			})
+			.await;
+
+		dispatcher
+			.dispatch(&mut OrderShipped { order_id: 123 })
+			.await
+			.unwrap();
+	}
+}

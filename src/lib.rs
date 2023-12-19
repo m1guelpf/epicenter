@@ -21,9 +21,7 @@
 //!     assert_eq!(event.order_id, 123);
 //! }).await;
 //!
-//! dispatcher.dispatch(&mut OrderShipped {
-//!     order_id: 123
-//! }).await?;
+//! dispatcher.dispatch(&OrderShipped { order_id: 123 }).await?;
 //! # Ok(())
 //! # }
 //! ```

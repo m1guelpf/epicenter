@@ -29,7 +29,7 @@ where
 #[allow(clippy::type_complexity)]
 struct AsyncListener {
 	event: TypeId,
-	handler: Box<dyn (FnMut(&mut dyn Any) -> BoxFuture<'_, ()>) + Send + Sync>,
+	handler: Box<dyn (Fn(&dyn Any) -> BoxFuture<'_, ()>) + Send + Sync>,
 }
 
 pub struct Dispatcher {
@@ -62,9 +62,9 @@ impl Dispatcher {
 
 		listeners.push(AsyncListener {
 			event: TypeId::of::<Ev>(),
-			handler: Box::new(move |ev: &mut dyn Any| {
+			handler: Box::new(move |ev: &dyn Any| {
 				let ev = ev
-					.downcast_mut::<Ev>()
+					.downcast_ref::<Ev>()
 					.expect("Event type mismatch in dispatcher")
 					.clone();
 				let on_event = on_event.clone();
@@ -87,16 +87,19 @@ impl Dispatcher {
 	///
 	/// Returns an error if the event type is not registered with the dispatcher.
 	#[allow(clippy::significant_drop_in_scrutinee)]
-	pub async fn dispatch<Ev: Event + Send + 'static>(&self, event: &mut Ev) -> Result<(), Error> {
-		for listener in self
-			.listeners
-			.write()
-			.await
-			.iter_mut()
+	pub async fn dispatch<Ev: Event + Send + Sync + 'static>(
+		&self,
+		event: &Ev,
+	) -> Result<(), Error> {
+		let listeners = self.listeners.read().await;
+
+		let futures = listeners
+			.iter()
 			.filter(|listener| listener.event == TypeId::of::<Ev>())
-		{
-			(listener.handler)(event).await;
-		}
+			.map(|listener| (listener.handler)(event));
+
+		futures::future::join_all(futures).await;
+		drop(listeners);
 
 		Ok(())
 	}
@@ -134,7 +137,7 @@ mod tests {
 			.await;
 
 		dispatcher
-			.dispatch(&mut OrderShipped { order_id: 123 })
+			.dispatch(&OrderShipped { order_id: 123 })
 			.await
 			.unwrap();
 	}

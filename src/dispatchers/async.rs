@@ -130,9 +130,7 @@ mod tests {
 		let mut dispatcher = Dispatcher::new();
 
 		dispatcher
-			.listen(|event: &mut OrderShipped| async move {
-				dbg!(event);
-			})
+			.listen(|event: &mut OrderShipped| async move { assert_eq!(event.order_id, 123) })
 			.await;
 
 		dispatcher

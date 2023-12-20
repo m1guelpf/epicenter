@@ -69,7 +69,7 @@ impl Dispatcher {
 					.clone();
 				let on_event = on_event.clone();
 
-				Box::pin(async move { on_event.handle(ev.clone()).await })
+				Box::pin(async move { on_event.handle(ev).await })
 			}),
 		});
 	}

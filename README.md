@@ -17,7 +17,7 @@ impl Event for ExampleEvent {}
 
 let mut dispatcher = AsyncDispatcher::new();
 
-dispatcher.listen(|event: &ExampleEvent| async move {
+dispatcher.listen(|event: ExampleEvent| async move {
     // ...
 }).await;
 

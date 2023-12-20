@@ -7,7 +7,7 @@ readme = "README.md"
 categories = ["asynchronous"]
 authors = ["Miguel Piedrafita <rust@miguel.build>"]
 repository = "https://github.com/m1guelpf/epicenter"
-description = "Simple synchronous and asynchronous event dispatcher for Rust"
+description = "Simple sync/async event dispatcher for Rust"
 keywords = ["event-dispatcher", "event-listener", "event-system", "asynchronous", "synchronous"]
 
 [dependencies]
